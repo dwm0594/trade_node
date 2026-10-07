@@ -608,7 +608,7 @@ onMounted(async () => {
                 </fieldset>
 
                 <!-- 评级 -->
-                <fieldset class="fieldset flex-1">
+                <fieldset class="fieldset w-40">
                   <legend class="fieldset-legend">
                     评级
                   </legend>
@@ -693,7 +693,7 @@ onMounted(async () => {
                 </fieldset>
 
                 <!-- 价格 -->
-                <fieldset class="fieldset flex-1">
+                <fieldset class="fieldset w-40">
                   <legend class="fieldset-legend">
                     价格
                   </legend>
@@ -714,7 +714,7 @@ onMounted(async () => {
 
 
                 <!-- 数量 -->
-                <fieldset class="fieldset flex-1">
+                <fieldset class="fieldset w-30">
                   <legend class="fieldset-legend">
                     数量
                   </legend>
@@ -731,7 +731,7 @@ onMounted(async () => {
 
                 </fieldset>
 
-                <fieldset class="fieldset flex-1">
+                <fieldset class="fieldset w-70">
                   <legend class="fieldset-legend">
                     总额(含佣)
                   </legend>
@@ -824,7 +824,7 @@ onMounted(async () => {
 
 
                 <!-- 评级 -->
-                <fieldset class="fieldset flex-1">
+                <fieldset class="fieldset w-40">
                   <legend class="fieldset-legend">
                     评级
                   </legend>

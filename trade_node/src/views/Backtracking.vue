@@ -383,7 +383,7 @@ function searchByYear(year: number) {
                   交易方向
                 </legend>
 
-                <select v-model="form.direction" class="select select-bordered w-full">
+                <select v-model="form.direction" class="select select-bordered w-full" disabled>
                   <option>多</option>
                   <option>空</option>
                 </select>
@@ -396,7 +396,7 @@ function searchByYear(year: number) {
                   币种
                 </legend>
 
-                <select v-model="form.currencyType" class="select select-bordered w-full">
+                <select v-model="form.currencyType" class="select select-bordered w-full" disabled>
                   <option>人民币</option>
                   <option>美元</option>
                 </select>
@@ -652,7 +652,7 @@ function searchByYear(year: number) {
                 </fieldset>
 
                 <!-- 评级 -->
-                <fieldset class="fieldset flex-1">
+                <fieldset class="fieldset w-40">
                   <legend class="fieldset-legend">
                     评级
                   </legend>
@@ -775,7 +775,7 @@ function searchByYear(year: number) {
 
                 </fieldset>
 
-                <fieldset class="fieldset flex-1">
+                <fieldset class="fieldset w-70">
                   <legend class="fieldset-legend">
                     总额(含佣)
                   </legend>
@@ -868,7 +868,7 @@ function searchByYear(year: number) {
 
 
                 <!-- 评级 -->
-                <fieldset class="fieldset flex-1">
+                <fieldset class="fieldset w-40">
                   <legend class="fieldset-legend">
                     评级
                   </legend>
