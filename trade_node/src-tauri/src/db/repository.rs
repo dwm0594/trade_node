@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use crate::enums::{Currency, Direction, PositionType};
 use rusqlite::{Connection, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 #[cfg(test)]
@@ -542,7 +542,6 @@ pub fn insert_dictionary(conn: &Connection, dictionary: &Dictionary) -> Result<(
 pub const MESSAGE_SOURCE: &str = "message_source";
 pub const TRADE_STRATEGY: &str = "trade_strategy";
 
-
 pub fn find_dictionaries_by_type(
     conn: &Connection,
     dictionary_type: &str,
@@ -568,6 +567,28 @@ pub fn find_dictionaries_by_type(
         .collect::<Result<Vec<_>>>()?;
 
     Ok(result)
+}
+
+pub fn find_dictionary_by_type(conn: &Connection, dictionary_type: &str) -> Result<Dictionary> {
+    let mut stmt = conn.prepare(
+        "
+        SELECT id, type, name, value
+        FROM dictionary
+        WHERE type = ?1
+        ",
+    )?;
+
+    let result = stmt.query_one([dictionary_type], |row| {
+        Ok(Dictionary {
+            id: row.get("id")?,
+            strategy: row.get("type")?,
+            name: row.get("name")?,
+            value: row.get("value")?,
+        })
+    });
+
+
+    result
 }
 
 pub fn update_dictionary(conn: &Connection, dictionary: &Dictionary) -> Result<()> {
@@ -695,6 +716,8 @@ fn find_positions_by_node(conn: &Connection, id: i64) -> Result<(Vec<Position>, 
     Ok((open_position, close_position))
 }
 
+
+
 pub fn find_trade_nodes_by_time(conn: &Connection, start: i64, end: i64) -> Result<Vec<TradeNode>> {
     let mut stmt = conn.prepare(
         "
@@ -751,6 +774,8 @@ pub fn find_trade_nodes_by_time(conn: &Connection, start: i64, end: i64) -> Resu
 
     Ok(result)
 }
+
+
 
 pub fn find_trade_nodes_by_id(conn: &Connection, id: i64) -> Result<TradeNode> {
     let mut stmt = conn.prepare(

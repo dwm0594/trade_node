@@ -5,6 +5,7 @@ import AddTrade from "../views/AddTrade.vue";
 import DashBoard from "../views/DashBoard.vue";
 import List from '../views/List.vue';
 import Backtracking from "../views/Backtracking.vue";
+import Account from "../views/Account.vue";
 
 
 const router = createRouter({
@@ -42,6 +43,13 @@ const router = createRouter({
                     name: 'Backtracking',
                     components: {
                         default: Backtracking,
+                        left: List
+                    }
+                }, {
+                    path: 'favorites',
+                    name: 'Account',
+                    components: {
+                        default: Account,
                         left: List
                     }
                 }

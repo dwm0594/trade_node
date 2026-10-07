@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import {onMounted, reactive, ref} from 'vue'
 import {invoke} from "@tauri-apps/api/core";
-import {DashboardAnalysis} from "../types/entity";
-import {formatDate, formatDateForDay, formatDuration} from "../utils/util";
+import {DashboardAnalysis, Dictionary} from "../types/entity";
+import {formatDateForDay, formatDuration} from "../utils/util";
+import {FAVORITE_CURRENCY, find_attribute, insert_attribute, insert_dict} from "../invoke/sql";
+import {showToast} from "../toast/useToast";
 
-type TimeRange = 'year' | 'lastYear' | 'beforeLastYear' | 'custom'
+type TimeRange = 'month' | 'year' | 'lastYear' | 'beforeLastYear' | 'custom'
 
-const activeRange = ref<TimeRange>('year')
+const activeRange = ref<TimeRange>('month')
 
 
 async function search(currency: string, start: number, end: number) {
@@ -17,10 +19,12 @@ async function search(currency: string, start: number, end: number) {
     currency: currency,
   });
 
+  console.log(result);
   Object.assign(stats, result);
 }
 
 const ranges = [
+  {key: 'month', label: '最近一月'},
   {key: 'year', label: '今年'},
   {key: 'lastYear', label: '去年'},
   {key: 'beforeLastYear', label: '前年'},
@@ -62,16 +66,26 @@ const stats = reactive<DashboardAnalysis>(<DashboardAnalysis>{
 })
 
 
-let fullYear = new Date().getFullYear();
+let endTimestamp = Date.now();
+const date = new Date()
+date.setMonth(date.getMonth() - 1)
 
-const start = ref<number>(new Date(fullYear, 0, 1).getTime())
-const end = ref<number>(new Date(fullYear + 1, 0, 1).getTime())
+const start = ref<number>(date.getTime())
+const end = ref<number>(endTimestamp)
 
 function selectRange(range: TimeRange) {
   activeRange.value = range
 
   if (range === 'custom') {
-    return
+    if (dataStart.value != '' && dataStart.value != '') {
+      let start = new Date(dataStart.value).getTime();
+      let end = new Date(dataEnd.value).getTime();
+      search(activeCurrency.value, start, end)
+      return
+    } else {
+      showToast('请先选择日期', 'error')
+      return
+    }
   }
 
   const now = new Date()
@@ -80,6 +94,14 @@ function selectRange(range: TimeRange) {
   let targetYear: number
 
   switch (range) {
+    case 'month':
+      const date = new Date()
+      date.setMonth(date.getMonth() - 1)
+      start.value = date.getTime()
+      end.value = Date.now()
+
+      search(activeCurrency.value, start.value, end.value)
+      return;
     case 'year':
       targetYear = year
       break
@@ -99,8 +121,15 @@ function selectRange(range: TimeRange) {
 
 
 function selectCurrency(range: CurrencyRange) {
-  activeCurrency.value = range
 
+  if (range === activeCurrency.value) {
+    return
+  }
+
+  activeCurrency.value = range
+  insert_attribute(FAVORITE_CURRENCY, activeCurrency.value, 0)
+
+  console.log('=====', range)
   search(activeCurrency.value, start.value, end.value)
 }
 
@@ -113,11 +142,21 @@ function formatMoney(value: number) {
   return `${value > 0 ? '+' : '-'} ${activeCurrency.value === '人民币' ? '¥' : '$'} ${Math.abs(value).toLocaleString()}`
 }
 
+function setCurrency(value: Dictionary | null) {
+  if (value != null) {
+    activeCurrency.value = value.name as CurrencyRange
+  }
+}
 
 const dataStart = ref('')
 const dataEnd = ref('')
 
 onMounted(async () => {
+
+  let dictionary = await find_attribute(FAVORITE_CURRENCY);
+  setCurrency(dictionary)
+
+
   await search(activeCurrency.value, start.value, end.value)
 })
 
@@ -126,9 +165,10 @@ onMounted(async () => {
 <template>
   <div class="h-full overflow-y-auto bg-gray-50 p-6">
 
-    <!-- Header -->
+
     <div class="mx-auto max-w-7xl">
 
+      <!-- Header -->
       <div class="mb-6 flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-semibold text-gray-800">
@@ -214,7 +254,7 @@ onMounted(async () => {
 
             <div
                 class="mt-3 text-3xl font-semibold"
-                :class="stats.profit >= 0 ? 'text-green-500' : 'text-red-500'"
+                :class="stats.profitLoss >= 0 ? 'text-green-500' : 'text-red-500'"
             >
               {{ formatMoney(stats.profitLoss) }}
             </div>
@@ -232,7 +272,7 @@ onMounted(async () => {
             </div>
 
             <div class="mt-3 text-3xl font-semibold text-gray-800">
-              {{ (stats.profitLossRatio * 100).toFixed(2) }}%
+              {{ (stats.profitLossRatio).toFixed(2) }}
             </div>
 
             <div class="mt-2 text-xs text-gray-400">
@@ -248,7 +288,7 @@ onMounted(async () => {
             </div>
 
             <div class="mt-3 text-3xl font-semibold text-gray-800">
-              {{ stats.profitRatio }}%
+              {{ (stats.profitRatio * 100).toFixed(2) }}%
             </div>
 
             <div class="mt-2 text-xs text-gray-400">
@@ -427,6 +467,10 @@ onMounted(async () => {
                 </th>
 
                 <th class="px-4 py-3 text-right font-normal">
+                  使用率
+                </th>
+
+                <th class="px-4 py-3 text-right font-normal">
                   盈亏比
                 </th>
               </tr>
@@ -435,7 +479,7 @@ onMounted(async () => {
               <tbody>
 
               <tr
-                  v-for="item in stats.sourceAnalysis"
+                  v-for="item in [...stats.sourceAnalysis].sort((a, b) => b.useRatio - a.useRatio)"
                   :key="item.name"
                   class="border-t border-gray-100"
               >
@@ -457,11 +501,14 @@ onMounted(async () => {
                           : 'text-gray-600'
                     "
                 >
-                  {{ item.profitRatio }}%
+                  {{ (item.profitRatio * 100).toFixed(2) }}%
                 </td>
 
                 <td class="px-4 py-3 text-right text-gray-700">
-                  {{ item.useRatio }}
+                  {{ (item.useRatio * 100).toFixed(2) }}%
+                </td>
+                <td class="px-4 py-3 text-right text-gray-700">
+                  {{ (item.profitLossRatio).toFixed(2) }}
                 </td>
               </tr>
 
@@ -498,6 +545,10 @@ onMounted(async () => {
                 </th>
 
                 <th class="px-4 py-3 text-right font-normal">
+                  使用率
+                </th>
+
+                <th class="px-4 py-3 text-right font-normal">
                   盈亏比
                 </th>
               </tr>
@@ -506,7 +557,7 @@ onMounted(async () => {
               <tbody>
 
               <tr
-                  v-for="item in stats.strategyAnalysis"
+                  v-for="item in [...stats.strategyAnalysis].sort((a, b) => b.useRatio - a.useRatio)"
                   :key="item.name"
                   class="border-t border-gray-100"
               >
@@ -528,11 +579,15 @@ onMounted(async () => {
                           : 'text-gray-600'
                     "
                 >
-                  {{ item.profitRatio }}%
+                  {{ (item.profitRatio * 100).toFixed(2) }}%
                 </td>
 
                 <td class="px-4 py-3 text-right text-gray-700">
-                  {{ item.useRatio }}
+                  {{ (item.useRatio * 100).toFixed(2) }}%
+                </td>
+
+                <td class="px-4 py-3 text-right text-gray-700">
+                  {{ (item.profitLossRatio).toFixed(2) }}
                 </td>
               </tr>
 

@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import {onMounted, reactive, ref, watch} from 'vue'
-import {Dictionary, Position, TradeForm} from "../types/entity";
-import {find_dict} from "../invoke/sql";
+import {AccountSetting, Dictionary, Position, TradeForm} from "../types/entity";
+import {
+  CNY_ACCOUNT_SETTING,
+  FAVORITE_CURRENCY,
+  find_account,
+  find_attribute,
+  find_dict,
+  USD_ACCOUNT_SETTING
+} from "../invoke/sql";
 import {open} from '@tauri-apps/plugin-dialog';
 import {convertFileSrc, invoke} from '@tauri-apps/api/core'
 import {showToast} from "../toast/useToast";
-import {createPosition, getHoldingTime, getScore, maxTime, removeImage} from "../utils/util";
+import {createPosition, getHoldingTime, getProfitAndLossRate, getScore, maxTime, removeImage} from "../utils/util";
 import {getScoreClass} from "../assets/style";
 import {emitter} from "../event/eventBus";
 import CurrencySymbol from "../components/CurrencySymbol.vue";
@@ -116,16 +123,6 @@ function openImage(path: string) {
   previewImage.value = convertFileSrc(path)
 }
 
-function getProfitAndLossRate() {
-
-  let profit = Math.abs(form.expect - form.profit);
-  let loss = Math.abs(form.expect - form.stopLoss);
-
-  if (loss > 0 && profit != loss) {
-    form.profitLossRatio = Number(((profit / loss) * 100).toFixed(2))
-  }
-}
-
 
 function closeAllPosition(index: number) {
 
@@ -171,9 +168,49 @@ watch(tradeDictionary, (list) => {
 }, {immediate: true})
 
 
+function setCurrency(dictionary: Dictionary | null) {
+  if (dictionary != null) {
+    form.currencyType = dictionary.name
+  }
+}
+
+
+function setRiskControl(account: AccountSetting) {
+  form.allowableMaxLoss = account.initialBalance * account.singleRisk / 100
+
+}
+
+
+const accountSetting = ref<AccountSetting>({
+  initialBalance: 0,
+  singleRisk: 0,
+  monthlyRisk: 0
+});
+
+async function riskControl() {
+
+  let type: string = CNY_ACCOUNT_SETTING
+  if (form.currencyType == '美元') {
+    type = USD_ACCOUNT_SETTING
+  }
+
+  accountSetting.value = await find_account(type);
+  setRiskControl(accountSetting.value)
+}
+
+
+function currencyChange() {
+  riskControl()
+}
+
 onMounted(async () => {
   tradeDictionary.value = await find_dict('trade_strategy');
   messageDictionary.value = await find_dict('message_source');
+
+  let dictionary = await find_attribute(FAVORITE_CURRENCY);
+  setCurrency(dictionary);
+
+  await riskControl()
 })
 
 
@@ -280,7 +317,7 @@ onMounted(async () => {
                   币种
                 </legend>
 
-                <select v-model="form.currencyType" class="select select-bordered w-full">
+                <select @change="currencyChange()" v-model="form.currencyType" class="select select-bordered w-full">
                   <option>人民币</option>
                   <option>美元</option>
                 </select>
@@ -328,7 +365,7 @@ onMounted(async () => {
                       type="number"
                       step="0.01"
                       placeholder="0.00"
-                      @change="getProfitAndLossRate()"
+                      @change="getProfitAndLossRate(form)"
                   />
                 </label>
               </fieldset>
@@ -347,7 +384,7 @@ onMounted(async () => {
                       type="number"
                       step="0.01"
                       placeholder="0.00"
-                      @change="getProfitAndLossRate()"
+                      @change="getProfitAndLossRate(form)"
                   />
                 </label>
               </fieldset>
@@ -366,7 +403,7 @@ onMounted(async () => {
                       type="number"
                       step="0.01"
                       placeholder="0.00"
-                      @change="getProfitAndLossRate()"
+                      @change="getProfitAndLossRate(form)"
                   />
                 </label>
               </fieldset>
@@ -380,7 +417,7 @@ onMounted(async () => {
 
                 <label
                     class="input w-full"
-                    :class="form.profitLossRatio < 200 &&  form.profitLossRatio != 0
+                    :class="form.profitLossRatio < 2 &&  form.profitLossRatio != 0
       ? 'border-error bg-error/10 text-error'
       : 'border-base-300'"
                 >
@@ -390,7 +427,6 @@ onMounted(async () => {
                       step="0.01"
                       disabled
                   />
-                  <span>%</span>
                 </label>
               </fieldset>
 
@@ -398,12 +434,14 @@ onMounted(async () => {
               <!-- 最大开仓 -->
               <fieldset class="fieldset flex-1">
                 <legend class="fieldset-legend">
-                  最大允许开仓
+                  开仓上限(股数)
                 </legend>
 
                 <label class="input input-bordered w-full">
+                  <CurrencySymbol :currency-type="form.currencyType"/>
+
                   <input
-                      v-model.number="form.profit"
+                      v-model.number="form.allowableMaxNum"
                       type="number"
                       disabled
                   />
@@ -412,12 +450,14 @@ onMounted(async () => {
 
               <fieldset class="fieldset flex-1">
                 <legend class="fieldset-legend">
-                  可能最大损失
+                  亏损上限
                 </legend>
 
                 <label class="input input-bordered w-full">
+                  <CurrencySymbol :currency-type="form.currencyType"/>
+
                   <input
-                      v-model.number="form.profit"
+                      v-model.number="form.allowableMaxLoss"
                       type="number"
                       disabled
                   />

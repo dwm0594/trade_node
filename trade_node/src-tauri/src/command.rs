@@ -1,12 +1,15 @@
 use crate::db::repository::{
-    batch_insert_position_sql, delete_dictionary, find_dictionaries_by_type, find_positions_by_id,
-    find_trade_nodes_by_id, find_trade_nodes_by_range_and_currency, find_trade_nodes_by_time,
-    insert_dictionary, insert_position_sql, insert_trade_node_sql, update_position_sql,
+    batch_insert_position_sql, delete_dictionary, find_dictionaries_by_type,
+    find_dictionary_by_type, find_positions_by_id, find_trade_nodes_by_id,
+    find_trade_nodes_by_range_and_currency, find_trade_nodes_by_time, insert_dictionary,
+    insert_position_sql, insert_trade_node_sql, update_dictionary, update_position_sql,
     update_trade_node_sql, AppState, Dictionary, Position, TradeNode, MESSAGE_SOURCE,
     TRADE_STRATEGY,
 };
 use crate::enums::Currency;
-use crate::util::{copy_screenshots, dash_board_analysis, delete_old_picture, DashboardAnalysis};
+use crate::util::{
+    copy_screenshots, dash_board_analysis, delete_old_picture, Account, DashboardAnalysis,
+};
 use rusqlite::{Connection, Error};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -105,6 +108,41 @@ pub fn insert_dict(
     insert_dictionary(&conn, &d)?;
 
     Ok(d)
+}
+
+#[tauri::command]
+pub fn insert_or_update_attribute(
+    dict_type: &str,
+    name: &str,
+    value: i32,
+    state: State<AppState>,
+) -> Result<(), CommandError> {
+    let conn = state.db.lock()?;
+
+    let result = find_dictionary_by_type(&conn, dict_type);
+    match result {
+        Ok(mut dictionary) => {
+            dictionary.name = Some(name.to_string());
+            dictionary.value = Some(value);
+            update_dictionary(&conn, &dictionary)?;
+        }
+
+        Err(_) => {
+            let dictionary = Dictionary::new(dict_type, name, value);
+            insert_dictionary(&conn, &dictionary)?;
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn find_attribute(dict_type: &str, state: State<AppState>) -> Result<Dictionary, CommandError> {
+    let conn = state.db.lock()?;
+
+    let result = find_dictionary_by_type(&conn, dict_type)?;
+
+    Ok(result)
 }
 
 #[tauri::command]
@@ -232,7 +270,39 @@ pub fn trade_analysis(
     println!("{} {} {}", start, end, currency.value());
     let result = find_trade_nodes_by_range_and_currency(&conn, start, end, currency)?;
 
+    if result.is_empty() {
+        return Ok(DashboardAnalysis::default());
+    }
+
     let analysis = dash_board_analysis(&result, source_map, trade_strategy_map);
 
     Ok(analysis)
+}
+
+#[tauri::command]
+pub fn account_setting(
+    dict_type: &str,
+    account: Account,
+    state: State<AppState>,
+) -> Result<(), CommandError> {
+    insert_or_update_attribute(
+        dict_type,
+        serde_json::to_string(&account)?.as_ref(),
+        0,
+        state,
+    )?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn find_account_setting(
+    dict_type: &str,
+    state: State<AppState>,
+) -> Result<Dictionary, CommandError> {
+    let conn = state.db.lock()?;
+
+    let setting = find_dictionary_by_type(&conn, dict_type)?;
+
+    Ok(setting)
 }

@@ -117,6 +117,8 @@ pub struct BehaviorAnalysis {
     pub loss_count: i32,
     // 胜率
     pub profit_ratio: f64,
+    // 盈亏比
+    pub profit_loss_ratio: f64,
 }
 
 impl BehaviorAnalysis {
@@ -131,11 +133,12 @@ impl BehaviorAnalysis {
             loss: 0.0,
             loss_count: 0,
             profit_ratio: 0.0,
+            profit_loss_ratio: 0.0,
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct DashboardAnalysis {
     // 单数
@@ -228,13 +231,33 @@ impl DashboardAnalysis {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Account {
+    pub initial_balance: f64,
+
+    pub monthly_risk: f64,
+
+    pub single_risk: f64,
+}
+
+impl Account {
+    pub fn new(initial_balance: f64, monthly_risk: f64, single_risk: f64) -> Self {
+        Account {
+            initial_balance,
+            monthly_risk,
+            single_risk,
+        }
+    }
+}
+
 pub fn dash_board_analysis(
     nodes: &Vec<TradeNode>,
     source_map: HashMap<i32, String>,
     trade_strategy_map: HashMap<i32, String>,
 ) -> DashboardAnalysis {
     // 单数
-    let size = nodes.len();
+    let mut size = 0;
     // 总盈亏
     let mut profit_loss = 0.0;
     // 总盈利
@@ -341,6 +364,7 @@ pub fn dash_board_analysis(
                         this_close_score_count += 1;
                     }
                 }
+                size += 1;
             })
         }
 
@@ -403,14 +427,12 @@ pub fn dash_board_analysis(
     let strategy_analysis = strategy_analysis_map.into_values().collect();
     let source_analysis = source_analysis_map.into_values().collect();
 
-    let profit_loss_ratio = profit / loss;
-
+    let profit_loss_ratio = profit / loss.abs();
 
     // 平均盈利
-    let ave_profit = profit / profit_count  as f64;
+    let ave_profit = profit / profit_count as f64;
     // 平均亏损
     let ave_loss = loss / loss_count as f64;
-
 
     let analysis = DashboardAnalysis::new(
         size,
@@ -444,6 +466,11 @@ fn calculate_ratio(map: &mut HashMap<i32, BehaviorAnalysis>, size: usize) {
     map.values_mut().for_each(|v| {
         v.use_ratio = v.use_count as f64 / size as f64;
         v.profit_ratio = v.profit_count as f64 / v.use_count as f64;
+        if v.loss != 0.0 {
+            v.profit_loss_ratio = v.profit / v.loss.abs();
+        } else {
+            v.profit_loss_ratio = v.profit.abs()
+        }
     });
 }
 

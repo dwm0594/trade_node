@@ -16,6 +16,10 @@ function addDashboard() {
   router.push('/')
 }
 
+function addFavorite() {
+  router.push('/favorites')
+}
+
 </script>
 
 <template>
@@ -44,7 +48,7 @@ function addDashboard() {
     <button popovertarget="a3">设置</button>
     <div id="a3" popover>
       <ul class="menu">
-        <li><a @click="addDashboard()">设置偏好</a></li>
+        <li><a @click="addFavorite()">账户设置</a></li>
       </ul>
     </div>
   </div>

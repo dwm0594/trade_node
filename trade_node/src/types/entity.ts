@@ -9,6 +9,10 @@ export interface TradeForm {
     profit: number
     stopLoss: number
     profitLossRatio: number
+    // 允许单笔最大开仓
+    allowableMaxNum: number,
+    // 允许单笔最大损失
+    allowableMaxLoss: number
     holdingTime: number
     currencyType: string
     openPosition: Position[]
@@ -130,4 +134,15 @@ export interface BehaviorAnalysis {
 
     /** 胜率 */
     profitRatio: number
+
+
+    /** 盈亏比 */
+    profitLossRatio: number
+}
+
+
+export interface AccountSetting {
+    initialBalance: number
+    monthlyRisk: number
+    singleRisk: number
 }

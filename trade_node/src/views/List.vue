@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref} from "vue";
 import {invoke} from "@tauri-apps/api/core";
-import {Position, TradeForm} from "../types/entity";
+import {TradeForm} from "../types/entity";
 import {formatDate, formatDuration} from "../utils/util";
 
 

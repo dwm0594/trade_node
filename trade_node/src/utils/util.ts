@@ -150,3 +150,19 @@ export async function getFilePaths(json: string): Promise<string[]> {
 export function removeImage(form: TradeForm, index: number) {
     form.filepath.splice(index, 1)
 }
+
+export function getProfitAndLossRate(form: TradeForm) {
+
+    let profit = Math.abs(form.expect - form.profit);
+    let loss = Math.abs(form.expect - form.stopLoss);
+
+    if (loss > 0 && profit != loss) {
+        form.profitLossRatio = Number((profit / loss).toFixed(2))
+    }
+
+
+    if (form.expect != 0.0 && form.stopLoss != 0.0) {
+        form.allowableMaxNum = Math.floor((form.allowableMaxLoss / Math.abs(form.expect - form.stopLoss)))
+    }
+
+}

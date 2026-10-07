@@ -12,13 +12,15 @@ import {
   getScore,
   getHoldingTime,
   getFilePaths,
-  removeImage, maxTime, formatDateTimeLocal
+  removeImage, maxTime, formatDateTimeLocal, getProfitAndLossRate
 } from "../utils/util";
 import {emitter} from "../event/eventBus";
 import CurrencySymbol from "../components/CurrencySymbol.vue";
 
 
 const form = reactive<TradeForm>({
+  allowableMaxLoss: 0,
+  allowableMaxNum: 0,
   id: 0,
   date: '',
   name: '',
@@ -130,16 +132,6 @@ const previewImage = ref('')
 
 function openImage(path: string) {
   previewImage.value = convertFileSrc(path)
-}
-
-function getProfitAndLossRate() {
-
-  let profit = Math.abs(form.expect - form.profit);
-  let loss = Math.abs(form.expect - form.stopLoss);
-
-  if (loss > 0 && profit != loss) {
-    form.profitLossRatio = Number(((profit / loss) * 100).toFixed(2))
-  }
 }
 
 
@@ -328,6 +320,8 @@ function searchByYear(year: number) {
           </div>
         </div>
 
+        <div class="divider my-1"></div>
+
         <!-- 基本信息 -->
         <div class="card bg-base-100 shadow-sm border border-base-200">
           <div class="card-body">
@@ -434,7 +428,7 @@ function searchByYear(year: number) {
               资金管理
             </h2>
             <div class="divider my-1"></div>
-            <div class="grid grid-cols-6 gap-5">
+            <div class="grid grid-cols-4 gap-5">
 
               <!-- 目标价 -->
               <fieldset class="fieldset flex-1">
@@ -450,7 +444,7 @@ function searchByYear(year: number) {
                       type="number"
                       step="0.01"
                       placeholder="0.00"
-                      @change="getProfitAndLossRate()"
+                      @change="getProfitAndLossRate(form)"
                   />
                 </label>
               </fieldset>
@@ -470,7 +464,7 @@ function searchByYear(year: number) {
                       type="number"
                       step="0.01"
                       placeholder="0.00"
-                      @change="getProfitAndLossRate()"
+                      @change="getProfitAndLossRate(form)"
                   />
                 </label>
               </fieldset>
@@ -489,7 +483,7 @@ function searchByYear(year: number) {
                       type="number"
                       step="0.01"
                       placeholder="0.00"
-                      @change="getProfitAndLossRate()"
+                      @change="getProfitAndLossRate(form)"
                   />
                 </label>
               </fieldset>
@@ -503,7 +497,7 @@ function searchByYear(year: number) {
 
                 <label
                     class="input w-full"
-                    :class="form.profitLossRatio < 200 &&  form.profitLossRatio != 0
+                    :class="form.profitLossRatio < 2 &&  form.profitLossRatio != 0
       ? 'border-error bg-error/10 text-error'
       : 'border-base-300'"
                 >
@@ -511,37 +505,6 @@ function searchByYear(year: number) {
                       v-model.number="form.profitLossRatio"
                       type="number"
                       step="0.01"
-                      disabled
-                  />
-                  <span>%</span>
-                </label>
-              </fieldset>
-
-
-              <!-- 最大开仓 -->
-              <fieldset class="fieldset flex-1">
-                <legend class="fieldset-legend">
-                  最大允许开仓
-                </legend>
-
-                <label class="input input-bordered w-full">
-                  <input
-                      v-model.number="form.profit"
-                      type="number"
-                      disabled
-                  />
-                </label>
-              </fieldset>
-
-              <fieldset class="fieldset flex-1">
-                <legend class="fieldset-legend">
-                  可能最大损失
-                </legend>
-
-                <label class="input input-bordered w-full">
-                  <input
-                      v-model.number="form.profit"
-                      type="number"
                       disabled
                   />
                 </label>
