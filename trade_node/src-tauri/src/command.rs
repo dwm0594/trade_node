@@ -1,5 +1,5 @@
 use crate::db::repository::{
-    batch_insert_position_sql, delete_dictionary, find_dictionaries_by_type,
+    batch_insert_position_sql, delete_dictionary, delete_trade_node_sql, find_dictionaries_by_type,
     find_dictionary_by_type, find_positions_by_id, find_trade_nodes_by_id,
     find_trade_nodes_by_range_and_currency, find_trade_nodes_by_time, insert_dictionary,
     insert_position_sql, insert_trade_node_sql, update_dictionary, update_position_sql,
@@ -8,11 +8,13 @@ use crate::db::repository::{
 };
 use crate::enums::Currency;
 use crate::util::{
-    copy_screenshots, dash_board_analysis, delete_old_picture, Account, DashboardAnalysis,
+    copy_screenshots, dash_board_analysis, delete_old_picture, delete_screenshots, Account,
+    DashboardAnalysis,
 };
 use rusqlite::{Connection, Error};
 use serde::Serialize;
 use std::collections::HashMap;
+use std::process::id;
 use std::sync::{MutexGuard, PoisonError};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::State;
@@ -31,6 +33,13 @@ impl From<String> for CommandError {
         CommandError(error)
     }
 }
+
+impl From<&str> for CommandError {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
+
 impl From<PoisonError<MutexGuard<'_, Connection>>> for CommandError {
     fn from(value: PoisonError<MutexGuard<Connection>>) -> Self {
         CommandError(value.to_string())
@@ -305,4 +314,24 @@ pub fn find_account_setting(
     let setting = find_dictionary_by_type(&conn, dict_type)?;
 
     Ok(setting)
+}
+
+#[tauri::command]
+pub fn delete_trade_node(id: i64, state: State<AppState>) -> Result<(), CommandError> {
+    let conn = state.db.lock()?;
+
+    let node = find_trade_nodes_by_id(&conn, id)?;
+
+    let open_position = node.open_position.as_ref().is_some_and(|v| !v.is_empty());
+    let close_position = node.close_position.as_ref().is_some_and(|v| !v.is_empty());
+
+    if open_position || close_position {
+        return Err("不能删除存在开仓,平仓记录的日志, 请完善你的日志 而不是回避！".into());
+    }
+
+    delete_trade_node_sql(&conn, id)?;
+
+    delete_screenshots(node.screenshots.as_ref())?;
+
+    Ok(())
 }

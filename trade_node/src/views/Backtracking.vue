@@ -48,6 +48,12 @@ const form = reactive<TradeForm>({
 
 async function submitForm() {
   try {
+
+    if (form.date == ''){
+      showToast('必须写时间,否则会成为幽灵单', 'error');
+      return;
+    }
+
     console.log('before form ', form)
 
     const data = {

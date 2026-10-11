@@ -427,9 +427,10 @@ pub fn update_trade_node_sql(conn: &Connection, node: &TradeNode) -> Result<()> 
     Ok(())
 }
 
-pub fn delete_trade_node(conn: &Connection, id: i64) -> Result<()> {
+pub fn delete_trade_node_sql(conn: &Connection, id: i64) -> Result<()> {
     conn.execute("DELETE FROM trade_node WHERE id = ?1", [id])?;
-
+    conn.execute("DELETE FROM position WHERE node_id = ?1", [id])?;
+    
     Ok(())
 }
 
@@ -587,7 +588,6 @@ pub fn find_dictionary_by_type(conn: &Connection, dictionary_type: &str) -> Resu
         })
     });
 
-
     result
 }
 
@@ -716,8 +716,6 @@ fn find_positions_by_node(conn: &Connection, id: i64) -> Result<(Vec<Position>, 
     Ok((open_position, close_position))
 }
 
-
-
 pub fn find_trade_nodes_by_time(conn: &Connection, start: i64, end: i64) -> Result<Vec<TradeNode>> {
     let mut stmt = conn.prepare(
         "
@@ -774,8 +772,6 @@ pub fn find_trade_nodes_by_time(conn: &Connection, start: i64, end: i64) -> Resu
 
     Ok(result)
 }
-
-
 
 pub fn find_trade_nodes_by_id(conn: &Connection, id: i64) -> Result<TradeNode> {
     let mut stmt = conn.prepare(

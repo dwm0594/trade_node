@@ -52,6 +52,37 @@ pub fn copy_screenshots(screenshots: Option<&String>) -> Result<Option<String>, 
     Ok(Some(result))
 }
 
+pub fn delete_screenshots(screenshots: Option<&String>) -> Result<(), String> {
+    let Some(screenshots) = screenshots else {
+        return Ok(());
+    };
+
+    let source_paths: Vec<String> =
+        serde_json::from_str(screenshots).map_err(|e| format!("JSON解析失败: {}", e))?;
+
+    // 当前 exe 所在目录
+    let exe_dir = std::env::current_exe()
+        .map_err(|e| format!("获取程序目录失败: {}", e))?
+        .parent()
+        .ok_or("获取程序目录失败")?
+        .to_path_buf();
+
+    // exe 同级 images 目录
+    let image_dir = exe_dir.join("images");
+
+    for source in source_paths {
+        let source_path = image_dir.join(&source);
+
+        if source_path.is_file() {
+            std::fs::remove_file(&source_path)
+                .map_err(|e| format!("删除图片失败 {:?}: {}", source_path, e))?;
+        }
+    }
+
+    
+    Ok(())
+}
+
 pub fn delete_old_picture(node: &TradeNode) -> Result<(), CommandError> {
     let Some(json_path) = &node.screenshots else {
         return Ok(());
