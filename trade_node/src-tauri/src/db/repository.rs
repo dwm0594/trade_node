@@ -3,6 +3,7 @@ use rusqlite::{Connection, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use tauri_plugin_opener::Error;
 
 #[cfg(test)]
 mod tests {
@@ -856,6 +857,7 @@ pub fn find_trade_nodes_by_range_and_currency(
         ",
     )?;
 
+
     let result = stmt
         .query_map((start, end, currency.value()), |row| {
             let id: i64 = row.get("id")?;
@@ -864,8 +866,12 @@ pub fn find_trade_nodes_by_range_and_currency(
 
             let (open_position, close_position) = find_positions_by_node(&conn, id)?;
 
-            Ok(TradeNode {
-                id: row.get("id")?,
+            if close_position.is_empty() {
+                return Ok(None);
+            }
+
+            Ok(Some(TradeNode {
+                id,
                 date: row.get("date")?,
                 name: row.get("name")?,
                 direction: direction.into(),
@@ -881,9 +887,13 @@ pub fn find_trade_nodes_by_range_and_currency(
                 open_position: Some(open_position),
                 close_position: Some(close_position),
                 backtracking: row.get("backtracking")?,
-            })
+            }))
         })?
-        .collect::<Result<Vec<TradeNode>>>();
+        .collect::<Result<Vec<Option<TradeNode>>>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<TradeNode>>();
 
-    result
+    
+    Ok(result)
 }

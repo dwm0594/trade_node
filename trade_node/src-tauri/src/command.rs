@@ -280,7 +280,8 @@ pub fn trade_analysis(
     let result = find_trade_nodes_by_range_and_currency(&conn, start, end, currency)?;
 
     if result.is_empty() {
-        return Ok(DashboardAnalysis::default());
+        let dashboard_analysis = DashboardAnalysis::default();
+        return Ok(dashboard_analysis);
     }
 
     let analysis = dash_board_analysis(&result, source_map, trade_strategy_map);

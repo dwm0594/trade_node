@@ -12,15 +12,14 @@ const activeRange = ref<TimeRange>('month')
 
 
 async function search(currency: string, start: number, end: number) {
-
   const result = await invoke<DashboardAnalysis>("trade_analysis", {
-    start: start,
-    end: end,
-    currency: currency,
+    start,
+    end,
+    currency,
   });
 
-  console.log(result);
-  Object.assign(stats, result);
+  console.log('-------12313', result);
+  stats.value = result;
 }
 
 const ranges = [
@@ -43,27 +42,31 @@ const currency = [
 ]
 
 // 模拟数据
-const stats = reactive<DashboardAnalysis>(<DashboardAnalysis>{
-  aveClosePositionScore: 0,
-  aveHoldingTime: 0,
-  aveLoss: 0,
-  aveLossHoldingTime: 0,
-  aveOpenPositionScore: 0,
-  aveProfit: 0,
-  aveProfitHoldingTime: 0,
-  loss: 0,
-  lossCount: 0,
-  maxHoldingTime: 0,
-  minHoldingTime: 0,
-  profit: 0,
-  profitCount: 0,
-  profitLoss: 0,
-  profitLossRatio: 0,
-  profitRatio: 0,
-  size: 0,
-  sourceAnalysis: [],
-  strategyAnalysis: []
-})
+function createDefaultStats(): DashboardAnalysis {
+  return {
+    aveClosePositionScore: 0,
+    aveHoldingTime: 0,
+    aveLoss: 0,
+    aveLossHoldingTime: 0,
+    aveOpenPositionScore: 0,
+    aveProfit: 0,
+    aveProfitHoldingTime: 0,
+    loss: 0,
+    lossCount: 0,
+    maxHoldingTime: 0,
+    minHoldingTime: 0,
+    profit: 0,
+    profitCount: 0,
+    profitLoss: 0,
+    profitLossRatio: 0,
+    profitRatio: 0,
+    size: 0,
+    sourceAnalysis: [],
+    strategyAnalysis: [],
+  };
+}
+
+let stats = ref<DashboardAnalysis>(createDefaultStats());
 
 
 let endTimestamp = Date.now();
@@ -129,7 +132,6 @@ function selectCurrency(range: CurrencyRange) {
   activeCurrency.value = range
   insert_attribute(FAVORITE_CURRENCY, activeCurrency.value, 0)
 
-  console.log('=====', range)
   search(activeCurrency.value, start.value, end.value)
 }
 
