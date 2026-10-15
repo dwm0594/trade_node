@@ -49,7 +49,7 @@ const form = reactive<TradeForm>({
 async function submitForm() {
   try {
 
-    if (form.date == ''){
+    if (form.date == '') {
       showToast('必须写时间,否则会成为幽灵单', 'error');
       return;
     }
@@ -138,6 +138,22 @@ const previewImage = ref('')
 
 function openImage(path: string) {
   previewImage.value = convertFileSrc(path)
+}
+
+
+function switchImage(step: number) {
+
+  const index = form.filepath.findIndex(
+      (item) => convertFileSrc(item) === previewImage.value
+  )
+
+  if (index === -1) return
+
+  const nextIndex =
+      (index + step + form.filepath.length) %
+      form.filepath.length
+
+  previewImage.value = convertFileSrc(form.filepath[nextIndex])
 }
 
 
@@ -992,11 +1008,62 @@ function searchByYear(year: number) {
                   class="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
                   @click="previewImage = ''"
               >
+                <!-- 左侧箭头 -->
+                <button
+                    type="button"
+                    v-if="form.filepath.length > 1"
+                    class="absolute left-4 md:left-8
+           flex h-12 w-12 items-center justify-center
+           rounded-full bg-black/30 text-white/70
+           transition hover:bg-black/60 hover:text-white"
+                    @click.stop="switchImage(-1)"
+                >
+                  <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                  >
+                    <path d="m15 18-6-6 6-6"/>
+                  </svg>
+                </button>
+
+                <!-- 图片 -->
                 <img
                     :src="previewImage"
                     class="max-w-[90vw] max-h-[90vh] object-contain"
                     @click.stop
                 />
+
+                <!-- 右侧箭头 -->
+                <button
+                    type="button"
+                    v-if="form.filepath.length > 1"
+                    class="absolute right-4 md:right-8
+           flex h-12 w-12 items-center justify-center
+           rounded-full bg-black/30 text-white/70
+           transition hover:bg-black/60 hover:text-white"
+                    @click.stop="switchImage(1)"
+                >
+                  <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                  >
+                    <path d="m9 18 6-6-6-6"/>
+                  </svg>
+                </button>
               </div>
 
             </div>

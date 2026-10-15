@@ -85,7 +85,7 @@
               type="range"
               min="0"
               max="10"
-              step="0.5"
+              step="0.001"
               class="range range-sm w-full"
           />
 
@@ -124,7 +124,7 @@
               type="range"
               min="0"
               max="20"
-              step="0.5"
+              step="0.001"
               class="range range-sm w-full"
           />
 
@@ -235,7 +235,7 @@
               type="range"
               min="0"
               max="10"
-              step="0.5"
+              step="0.001"
               class="range range-sm w-full"
           />
 
@@ -274,7 +274,7 @@
               type="range"
               min="0"
               max="20"
-              step="0.5"
+              step="0.001"
               class="range range-sm w-full"
           />
 
